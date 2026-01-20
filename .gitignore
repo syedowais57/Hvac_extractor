@@ -1,0 +1,24 @@
+# Byte-compiled
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environment
+venv/
+.env
+
+# IDE
+.vscode/
+.idea/
+
+# Output files
+output/
+*.xlsx
+*.pdf
+
+# Debug
+debug_scripts/
+
+# OS
+.DS_Store
+Thumbs.db
