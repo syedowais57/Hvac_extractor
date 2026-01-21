@@ -147,6 +147,7 @@ async def extract_hvac(
 @app.get("/status/{job_id}")
 async def get_status(job_id: str):
     """Check status of a job"""
+    print(jobs, job_id)
     if job_id not in jobs:
         raise HTTPException(status_code=404, detail="Job not found")
     
