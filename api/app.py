@@ -5,7 +5,7 @@ import json
 from pathlib import Path
 from typing import Dict, Optional, List
 from fastapi import FastAPI, UploadFile, File, BackgroundTasks, HTTPException
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi.responses import FileResponse, JSONResponse, HTMLResponse
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
 
@@ -135,6 +135,208 @@ async def download_file(filename: str):
         filename=filename,
         media_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
     )
+
+# HTML UI Template
+HOME_HTML = """
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HVAC Data Extractor</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #4F46E5;
+            --primary-hover: #4338CA;
+            --bg: #0F172A;
+            --card: #1E293B;
+            --text: #F8FAFC;
+            --text-muted: #94A3B8;
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+        .container {
+            width: 100%;
+            max-width: 500px;
+            padding: 2rem;
+            background: var(--card);
+            border-radius: 1.5rem;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        h1 { font-size: 1.875rem; font-weight: 700; margin-bottom: 0.5rem; text-align: center; }
+        p { color: var(--text-muted); text-align: center; margin-bottom: 2rem; }
+        .field { margin-bottom: 1.5rem; }
+        label { display: block; font-size: 0.875rem; font-weight: 600; margin-bottom: 0.5rem; color: var(--text-muted); }
+        input[type="file"] {
+            width: 100%;
+            padding: 0.75rem;
+            background: #334155;
+            border-radius: 0.75rem;
+            border: 2px dashed #475569;
+            color: var(--text);
+            cursor: pointer;
+            box-sizing: border-box;
+        }
+        button {
+            width: 100%;
+            padding: 1rem;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 0.75rem;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        button:hover { background: var(--primary-hover); transform: translateY(-1px); }
+        button:disabled { background: #475569; cursor: not-allowed; }
+        #status-area {
+            margin-top: 2rem;
+            padding: 1rem;
+            background: #334155;
+            border-radius: 1rem;
+            display: none;
+        }
+        .status-header { font-weight: 600; margin-bottom: 0.5rem; display: flex; justify-content: space-between; }
+        .step { font-size: 0.875rem; color: var(--text-muted); }
+        .loader {
+            height: 4px;
+            width: 100%;
+            background: #1e293b;
+            border-radius: 2px;
+            overflow: hidden;
+            margin-top: 1rem;
+        }
+        .loader-bar {
+            height: 100%;
+            width: 30%;
+            background: var(--primary);
+            animation: loading 1.5s infinite ease-in-out;
+        }
+        @keyframes loading {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(400%); }
+        }
+        .download-links { margin-top: 1rem; display: flex; flex-direction: column; gap: 0.5rem; }
+        .download-link {
+            display: block;
+            padding: 0.75rem;
+            background: #10B981;
+            color: white;
+            text-decoration: none;
+            text-align: center;
+            border-radius: 0.5rem;
+            font-weight: 600;
+        }
+        .download-link:hover { background: #059669; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>HVAC Extractor</h1>
+        <p>Extract data from PDF drawings to Excel</p>
+        
+        <div class="field">
+            <label>PDF Drawings (Required)</label>
+            <input type="file" id="pdf-file" accept=".pdf">
+        </div>
+        
+        <div class="field">
+            <label>Original Excel Template (Optional)</label>
+            <input type="file" id="excel-template" accept=".xlsx">
+        </div>
+        
+        <button id="upload-btn">Start Extraction</button>
+        
+        <div id="status-area">
+            <div class="status-header">
+                <span id="status-text">Processing...</span>
+            </div>
+            <div id="step-text" class="step">Initializing...</div>
+            <div id="loader" class="loader"><div class="loader-bar"></div></div>
+            <div id="download-area" class="download-links"></div>
+        </div>
+    </div>
+
+    <script>
+        const uploadBtn = document.getElementById('upload-btn');
+        const pdfInput = document.getElementById('pdf-file');
+        const excelInput = document.getElementById('excel-template');
+        const statusArea = document.getElementById('status-area');
+        const statusText = document.getElementById('status-text');
+        const stepText = document.getElementById('step-text');
+        const downloadArea = document.getElementById('download-area');
+        const loader = document.getElementById('loader');
+
+        uploadBtn.onclick = async () => {
+            const pdfFile = pdfInput.files[0];
+            if (!pdfFile) { alert('Please select a PDF file'); return; }
+
+            uploadBtn.disabled = true;
+            statusArea.style.display = 'block';
+            downloadArea.innerHTML = '';
+            loader.style.display = 'block';
+
+            const formData = new FormData();
+            formData.append('file', pdfFile);
+            if (excelInput.files[0]) formData.append('template', excelInput.files[0]);
+
+            try {
+                const response = await fetch('/extract', { method: 'POST', body: formData });
+                const { job_id } = await response.json();
+                pollStatus(job_id);
+            } catch (err) {
+                alert('Upload failed');
+                uploadBtn.disabled = false;
+            }
+        };
+
+        async function pollStatus(jobId) {
+            const interval = setInterval(async () => {
+                const res = await fetch(`/status/${jobId}`);
+                const data = await res.json();
+                
+                statusText.innerText = data.status.charAt(0).toUpperCase() + data.status.slice(1);
+                stepText.innerText = data.step ? data.step.replace(/_/g, ' ') : 'Wait...';
+
+                if (data.status === 'completed') {
+                    clearInterval(interval);
+                    loader.style.display = 'none';
+                    uploadBtn.disabled = false;
+                    
+                    let html = `<a href="/download/${data.result_file}" class="download-link">Download New Report</a>`;
+                    if (data.populated_file) {
+                        html += `<a href="/download/${data.populated_file}" class="download-link">Download Populated Template</a>`;
+                    }
+                    downloadArea.innerHTML = html;
+                } else if (data.status === 'failed') {
+                    clearInterval(interval);
+                    loader.style.display = 'none';
+                    uploadBtn.disabled = false;
+                    stepText.innerText = 'Error: ' + data.error;
+                }
+            }, 3000);
+        }
+    </script>
+</body>
+</html>
+"""
+
+@app.get("/", response_class=HTMLResponse)
+async def home():
+    """Root endpoint returning the Web UI"""
+    return HOME_HTML
 
 if __name__ == "__main__":
     import uvicorn
