@@ -147,13 +147,12 @@ Return a JSON object with this structure:
     ]
 }
 
-CRITICAL INSTRUCTIONS:
-- Extract EVERY VAV tag you see (VAVB5-01 through VAVB5-99)
-- If a VAV has reheat (has_reheat=true), also create a heater entry with tag {VAV_TAG}-H
 - Extract ALL rows from ALL tables - do not skip any
 - For VAVs, inlet size is typically 6, 8, 10, or 12 inches
 - If a field is not visible, use null
-- Return ONLY valid JSON, no markdown formatting"""
+- If no equipment is found, return an object with empty lists.
+- Return ONLY a valid JSON object. Do not include any conversational text, explanations, or markdown formatting. 
+- Ensure every tag follows the expected pattern (e.g., VAVB5-XX, EF-X)."""
 
     FLOOR_PLAN_PROMPT = """Analyze this HVAC floor plan drawing VERY CAREFULLY.
 
@@ -173,12 +172,12 @@ Return a JSON object:
     "air_devices": []
 }
 
-CRITICAL:
-- Extract EVERY VAV tag visible (VAVB5-XX pattern)
 - Look for tags in circles, rectangles, or next to ductwork
 - Include tags that may be partially visible or small
 - Tags range from VAVB5-01 to VAVB5-99
-- Return ONLY valid JSON, no markdown formatting."""
+- If no tags are found, return the JSON object with empty lists.
+- IMPORTANT: Return ONLY valid JSON. Absolutely no conversational text or explaining why you couldn't find anything.
+- Return ONLY the JSON object, do not use markdown code blocks."""
 
     def __init__(self, api_key: Optional[str] = None):
         """Initialize with Gemini API key"""
@@ -226,17 +225,18 @@ CRITICAL:
         # Parse JSON response
         response_text = response.text.strip()
         
-        # Clean up response (remove markdown code blocks if present)
-        if response_text.startswith("```"):
-            lines = response_text.split("\n")
-            response_text = "\n".join(lines[1:-1])
-        
+        # Enhanced cleanup: Find the first '{' and last '}'
         try:
+            start_idx = response_text.find('{')
+            end_idx = response_text.rfind('}')
+            if start_idx != -1 and end_idx != -1:
+                response_text = response_text[start_idx:end_idx + 1]
+            
             return json.loads(response_text)
-        except json.JSONDecodeError as e:
-            print(f"JSON parse error: {e}")
-            print(f"Response was: {response_text[:500]}")
-            return {}
+        except (json.JSONDecodeError, ValueError) as e:
+            print(f"JSON parse error on page: {e}")
+            # Fallback for "I am unable to..." conversational responses
+            return {"fans": [], "vavs": [], "cracs": [], "heaters": [], "air_devices": []}
     
     def extract_from_pdf(self, pdf_path: str) -> Dict[str, List]:
         """
