@@ -3,8 +3,13 @@ import time
 import sys
 from pathlib import Path
 
+# --- CONFIGURATION ---
+# For Local Test: "http://127.0.0.1:8000"
+# For Render Test: "https://your-app-name.onrender.com"
+BASE_URL = "http://127.0.0.1:8000" 
+
 def test_extraction():
-    url = "http://127.0.0.1:8000"
+    url = BASE_URL
     pdf_path = r"D:\SW\new project\Boeing R&D Drawings.pdf"
     template_path = r"D:\SW\new project\Boeing Arlington R&D Setup.xlsx"
     
