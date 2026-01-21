@@ -189,7 +189,7 @@ CRITICAL:
         genai.configure(api_key=self.api_key)
         self.model = genai.GenerativeModel("gemini-2.0-flash")
         
-    def _pdf_page_to_image(self, pdf_path: str, page_num: int, dpi: int = 200) -> bytes:
+    def _pdf_page_to_image(self, pdf_path: str, page_num: int, dpi: int = 150) -> bytes:
         """Convert PDF page to PNG image bytes"""
         doc = fitz.open(pdf_path)
         page = doc[page_num]
