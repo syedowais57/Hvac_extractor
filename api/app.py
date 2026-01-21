@@ -315,7 +315,7 @@ HOME_HTML = r"""
             const input = document.getElementById(inputId);
             const info = document.getElementById(infoId);
 
-            area.onclick = () => input.click();
+            // Drag-drop support
             area.ondragover = (e) => { e.preventDefault(); area.classList.add('active'); };
             area.ondragleave = () => area.classList.remove('active');
             area.ondrop = (e) => {
@@ -324,11 +324,13 @@ HOME_HTML = r"""
                 input.files = e.dataTransfer.files;
                 updateInfo();
             };
-            input.onchange = () => updateInfo();
+            
+            // File selection via click (native label behavior) or programmatic
+            input.addEventListener('change', updateInfo);
 
             function updateInfo() {
-                if(input.files.length) {
-                    info.innerHTML = `<span class="text-indigo-300 font-semibold">${input.files[0].name}</span>`;
+                if(input.files && input.files.length) {
+                    info.innerHTML = '<span class="text-indigo-300 font-semibold">' + input.files[0].name + '</span>';
                 }
             }
         };
