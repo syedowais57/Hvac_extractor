@@ -305,7 +305,7 @@ HOME_HTML = r"""
         document.getElementById('api-url').value = BASE_URL;
 
         function saveApiUrl() {
-            BASE_URL = document.getElementById('api-url').value.replace(/\\/$/, '');
+            BASE_URL = document.getElementById('api-url').value.replace(/\/$/, '');
             localStorage.setItem('hvac_api_url', BASE_URL);
             alert('API URL updated: ' + BASE_URL);
         }
