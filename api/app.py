@@ -67,13 +67,14 @@ def process_hvac_task(job_id: str, pdf_path: str, template_path: Optional[str] =
         jobs[job_id]["status"] = "processing"
         save_jobs()
         
-        # Initialize pipeline
+        # Initialize pipeline (schedules-only for Render stability)
         output_xlsx = OUTPUT_DIR / f"hvac_report_{job_id}.xlsx"
         pipeline = LLMHVACPipeline(
             pdf_path=str(pdf_path),
             output_path=str(output_xlsx),
             job_number="1168",
-            project_name="Boeing Arlington R&D"
+            project_name="Boeing Arlington R&D",
+            full_extraction=False  # Schedules-only to save RAM
         )
         
         # 1. Extract data
@@ -166,8 +167,8 @@ async def download_file(filename: str):
         media_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
     )
 
-# HTML UI Template
-HOME_HTML = """
+# HTML UI Template (use raw string to avoid escape sequence warnings)
+HOME_HTML = r"""
 <!DOCTYPE html>
 <html lang="en">
 <head>
