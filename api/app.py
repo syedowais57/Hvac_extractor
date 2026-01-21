@@ -247,26 +247,26 @@ HOME_HTML = r"""
                 <!-- PDF Upload -->
                 <div>
                     <label class="text-sm font-semibold text-slate-300 mb-3 block">1. Upload Drawings (PDF)</label>
-                    <div id="pdf-drop" class="drag-area border-2 border-dashed border-slate-700 rounded-2xl p-8 text-center cursor-pointer transition-all hover:border-slate-500">
-                        <input type="file" id="pdf-input" accept=".pdf" class="hidden">
+                    <input type="file" id="pdf-input" accept=".pdf" class="hidden">
+                    <label for="pdf-input" id="pdf-drop" class="drag-area border-2 border-dashed border-slate-700 rounded-2xl p-8 text-center cursor-pointer transition-all hover:border-slate-500 block">
                         <div id="pdf-info">
                             <svg class="w-10 h-10 text-slate-500 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
                             </svg>
                             <p class="text-slate-400 text-sm">Drop your PDF here or <span class="text-indigo-400 font-semibold">Browse</span></p>
                         </div>
-                    </div>
+                    </label>
                 </div>
 
                 <!-- Template Upload -->
                 <div>
                     <label class="text-sm font-semibold text-slate-300 mb-3 block">2. Original Template (Optional XLSX)</label>
-                    <div id="template-drop" class="drag-area border-2 border-dashed border-slate-700 rounded-2xl p-6 text-center cursor-pointer transition-all hover:border-slate-500">
-                        <input type="file" id="template-input" accept=".xlsx" class="hidden">
+                    <input type="file" id="template-input" accept=".xlsx" class="hidden">
+                    <label for="template-input" id="template-drop" class="drag-area border-2 border-dashed border-slate-700 rounded-2xl p-6 text-center cursor-pointer transition-all hover:border-slate-500 block">
                         <div id="template-info">
                             <p class="text-slate-500 text-xs">Click to select Boeing Setup Excel</p>
                         </div>
-                    </div>
+                    </label>
                 </div>
 
                 <!-- Action Button -->
