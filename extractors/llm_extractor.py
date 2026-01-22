@@ -5,7 +5,15 @@ Extracts HVAC equipment data from PDF drawings
 import os
 import json
 import fitz  # PyMuPDF
-import google.generativeai as genai
+# Try new package first, fallback to deprecated one
+try:
+    import google.genai as genai
+    USE_NEW_API = True
+except ImportError:
+    import google.generativeai as genai
+    USE_NEW_API = False
+    import warnings
+    warnings.filterwarnings('ignore', category=FutureWarning)
 from dataclasses import dataclass, asdict
 from typing import List, Dict, Optional, Any
 from pathlib import Path
@@ -179,14 +187,49 @@ Return a JSON object:
 - IMPORTANT: Return ONLY valid JSON. Absolutely no conversational text or explaining why you couldn't find anything.
 - Return ONLY the JSON object, do not use markdown code blocks."""
 
-    def __init__(self, api_key: Optional[str] = None):
-        """Initialize with Gemini API key"""
+    def __init__(self, api_key: Optional[str] = None, model_name: Optional[str] = None):
+        """Initialize with Gemini API key and model name"""
         self.api_key = api_key or os.environ.get("GEMINI_API_KEY")
         if not self.api_key:
             raise ValueError("GEMINI_API_KEY not provided. Set it as environment variable or pass to constructor.")
         
-        genai.configure(api_key=self.api_key)
-        self.model = genai.GenerativeModel("gemini-3-pro-preview")
+        # Get model name from parameter, env var, or use default
+        self.model_name = (
+            model_name or 
+            os.environ.get("GEMINI_MODEL") or 
+            "gemini-2.0-flash-exp"  # Default model
+        )
+        
+        if USE_NEW_API:
+            # New API
+            genai.configure(api_key=self.api_key)
+            # Try specified model, fallback to alternatives
+            try:
+                self.model = genai.GenerativeModel(self.model_name)
+                print(f"Using model: {self.model_name}")
+            except Exception as e:
+                print(f"Warning: Could not load model '{self.model_name}': {e}")
+                # Fallback to older model
+                try:
+                    self.model = genai.GenerativeModel("gemini-1.5-flash")
+                    print("Falling back to: gemini-1.5-flash")
+                except:
+                    raise ValueError(f"Could not initialize any Gemini model. Tried: {self.model_name}, gemini-1.5-flash")
+        else:
+            # Deprecated API (backward compatibility)
+            genai.configure(api_key=self.api_key)
+            # Use model that works with deprecated API
+            try:
+                self.model = genai.GenerativeModel(self.model_name)
+                print(f"Using model: {self.model_name}")
+            except Exception as e:
+                print(f"Warning: Could not load model '{self.model_name}': {e}")
+                # Fallback to older model
+                try:
+                    self.model = genai.GenerativeModel("gemini-1.5-flash")
+                    print("Falling back to: gemini-1.5-flash")
+                except:
+                    raise ValueError(f"Could not initialize any Gemini model. Tried: {self.model_name}, gemini-1.5-flash")
         
     def _pdf_page_to_image(self, pdf_path: str, page_num: int) -> bytes:
         """Convert PDF page to PNG image bytes"""
@@ -217,26 +260,34 @@ Return a JSON object:
         import PIL.Image
         import io
         
-        # Convert bytes to PIL Image
-        image = PIL.Image.open(io.BytesIO(image_bytes))
-        
-        # Send to Gemini
-        response = self.model.generate_content([prompt, image])
-        
-        # Parse JSON response
-        response_text = response.text.strip()
-        
-        # Enhanced cleanup: Find the first '{' and last '}'
         try:
-            start_idx = response_text.find('{')
-            end_idx = response_text.rfind('}')
-            if start_idx != -1 and end_idx != -1:
-                response_text = response_text[start_idx:end_idx + 1]
+            # Convert bytes to PIL Image
+            image = PIL.Image.open(io.BytesIO(image_bytes))
             
-            return json.loads(response_text)
-        except (json.JSONDecodeError, ValueError) as e:
-            print(f"JSON parse error on page: {e}")
-            # Fallback for "I am unable to..." conversational responses
+            # Send to Gemini with error handling
+            try:
+                response = self.model.generate_content([prompt, image])
+                response_text = response.text.strip() if hasattr(response, 'text') else str(response)
+            except Exception as api_error:
+                print(f"Gemini API error: {api_error}")
+                return {"fans": [], "vavs": [], "cracs": [], "heaters": [], "air_devices": []}
+            
+            # Parse JSON response
+            # Enhanced cleanup: Find the first '{' and last '}'
+            try:
+                start_idx = response_text.find('{')
+                end_idx = response_text.rfind('}')
+                if start_idx != -1 and end_idx != -1:
+                    response_text = response_text[start_idx:end_idx + 1]
+                
+                return json.loads(response_text)
+            except (json.JSONDecodeError, ValueError) as e:
+                print(f"JSON parse error: {e}")
+                print(f"Response text (first 500 chars): {response_text[:500]}")
+                # Fallback for "I am unable to..." conversational responses
+                return {"fans": [], "vavs": [], "cracs": [], "heaters": [], "air_devices": []}
+        except Exception as e:
+            print(f"Error in _extract_with_gemini: {e}")
             return {"fans": [], "vavs": [], "cracs": [], "heaters": [], "air_devices": []}
     
     def extract_from_pdf(self, pdf_path: str) -> Dict[str, List]:

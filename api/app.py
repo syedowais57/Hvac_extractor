@@ -63,12 +63,24 @@ load_jobs()
 
 def process_hvac_task(job_id: str, pdf_path: str, template_path: Optional[str] = None):
     """Background task to run the extraction pipeline"""
+    import traceback
+    
     try:
+        print(f"[JOB {job_id}] Starting extraction task...")
+        load_jobs()  # Reload to get latest state
+        
+        if job_id not in jobs:
+            print(f"[JOB {job_id}] ERROR: Job not found in jobs dict")
+            return
+            
         jobs[job_id]["status"] = "processing"
+        jobs[job_id]["step"] = "initializing"
         save_jobs()
+        print(f"[JOB {job_id}] Status: processing")
         
         # Initialize pipeline (schedules-only for Render stability)
         output_xlsx = OUTPUT_DIR / f"hvac_report_{job_id}.xlsx"
+        print(f"[JOB {job_id}] Initializing pipeline...")
         pipeline = LLMHVACPipeline(
             pdf_path=str(pdf_path),
             output_path=str(output_xlsx),
@@ -78,17 +90,21 @@ def process_hvac_task(job_id: str, pdf_path: str, template_path: Optional[str] =
         )
         
         # 1. Extract data
+        print(f"[JOB {job_id}] Starting data extraction...")
         jobs[job_id]["step"] = "extracting_data"
         save_jobs()
         extracted_data = pipeline.extract()
+        print(f"[JOB {job_id}] Extraction complete. Found {sum(len(v) for v in extracted_data.values())} items")
         
         # 2. Save JSON for reference
         json_path = OUTPUT_DIR / f"data_{job_id}.json"
         with open(json_path, "w") as f:
             json.dump(extracted_data, f, indent=2)
+        print(f"[JOB {job_id}] JSON saved to {json_path}")
             
         # 3. Populate original template if provided
         if template_path and Path(template_path).exists():
+            print(f"[JOB {job_id}] Populating template...")
             jobs[job_id]["step"] = "populating_template"
             save_jobs()
             populated_path = OUTPUT_DIR / f"populated_{job_id}.xlsx"
@@ -96,8 +112,10 @@ def process_hvac_task(job_id: str, pdf_path: str, template_path: Optional[str] =
             populator.populate_all(extracted_data)
             populator.save(str(populated_path))
             jobs[job_id]["populated_file"] = f"populated_{job_id}.xlsx"
+            print(f"[JOB {job_id}] Template populated")
         
         # 4. Generate the new report (default behavior of pipeline)
+        print(f"[JOB {job_id}] Generating Excel report...")
         jobs[job_id]["step"] = "generating_report"
         save_jobs()
         pipeline.generate_excel()
@@ -107,12 +125,22 @@ def process_hvac_task(job_id: str, pdf_path: str, template_path: Optional[str] =
         jobs[job_id]["result_file"] = f"hvac_report_{job_id}.xlsx"
         jobs[job_id]["data_file"] = f"data_{job_id}.json"
         save_jobs()
+        print(f"[JOB {job_id}] ✅ COMPLETED successfully")
         
     except Exception as e:
-        jobs[job_id]["status"] = "failed"
-        jobs[job_id]["error"] = str(e)
-        save_jobs()
-        print(f"Error processing job {job_id}: {e}")
+        error_msg = str(e)
+        error_trace = traceback.format_exc()
+        print(f"[JOB {job_id}] ❌ ERROR: {error_msg}")
+        print(f"[JOB {job_id}] Traceback:\n{error_trace}")
+        
+        load_jobs()  # Reload before updating
+        if job_id in jobs:
+            jobs[job_id]["status"] = "failed"
+            jobs[job_id]["error"] = error_msg
+            jobs[job_id]["error_trace"] = error_trace[:500]  # Limit trace length
+            save_jobs()
+        else:
+            print(f"[JOB {job_id}] WARNING: Job not found when trying to save error")
 
 @app.post("/extract")
 async def extract_hvac(
@@ -148,9 +176,11 @@ async def extract_hvac(
 @app.get("/status/{job_id}")
 async def get_status(job_id: str):
     """Check status of a job"""
-    print(jobs, job_id)
+    # Reload jobs from file to ensure we have latest state
+    load_jobs()
+    
     if job_id not in jobs:
-        raise HTTPException(status_code=404, detail="Job not found")
+        raise HTTPException(status_code=404, detail=f"Job {job_id} not found")
     
     return jobs[job_id]
 
@@ -429,6 +459,15 @@ HOME_HTML = r"""
 </body>
 </html>
 """
+
+@app.get("/health")
+async def health_check():
+    """Health check endpoint"""
+    return {
+        "status": "healthy",
+        "jobs_count": len(jobs),
+        "api_key_set": bool(os.environ.get("GEMINI_API_KEY"))
+    }
 
 @app.api_route("/", methods=["GET", "HEAD"], response_class=HTMLResponse)
 async def home():

@@ -23,9 +23,27 @@ pip install pymupdf openpyxl
 
 ## Usage
 
+### Quick Test
 ```bash
-python hvac_pipeline.py
+# Check setup
+python scripts/check_setup.py
+
+# Run local test
+python scripts/test_local.py
+
+# Start API server
+python scripts/start_api.py
 ```
+
+### Web API
+```bash
+# Start server
+python scripts/start_api.py
+
+# Then open: http://localhost:8000
+```
+
+See `docs/QUICK_START.md` for detailed instructions.
 
 ## Requirements
 - Python 3.8+
@@ -34,10 +52,22 @@ python hvac_pipeline.py
 
 ## Project Structure
 ```
-├── hvac_pipeline.py          # Main pipeline
+├── api/
+│   └── app.py                # FastAPI web service
 ├── extractors/
-│   └── improved_extractor.py # Core extraction logic
-├── debug_scripts/            # Test/debug utilities
+│   ├── llm_extractor.py     # LLM-based extraction (Gemini)
+│   ├── excel_generator.py   # Excel report generation
+│   └── excel_populator.py   # Template population
+├── scripts/                  # Test and utility scripts
+│   ├── test_local.py         # Direct pipeline test
+│   ├── start_api.py          # Start API server locally
+│   └── ...
+├── docs/                     # Documentation
+│   ├── QUICK_START.md        # Quick start guide
+│   ├── DEPLOY_NOW.md         # Deployment guide
+│   └── ...
+├── llm_pipeline.py           # Main LLM pipeline
+├── hvac_pipeline.py          # Legacy pipeline
 └── output/                   # Generated files
 ```
 

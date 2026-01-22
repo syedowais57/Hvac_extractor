@@ -11,3 +11,6 @@ services:
         value: .
       - key: GEMINI_API_KEY
         sync: false # Set this in the Render dashboard manually
+      - key: GEMINI_MODEL
+        value: gemini-2.0-flash-exp # Optional: defaults to this if not set
+        sync: false # Can be overridden in Render dashboard

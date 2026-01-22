@@ -16,8 +16,8 @@ output/
 *.xlsx
 *.pdf
 
-# Debug
-debug_scripts/
+# Debug/Test Scripts (optional - uncomment to ignore)
+scripts/
 
 # OS
 .DS_Store

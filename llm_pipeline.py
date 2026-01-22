@@ -63,7 +63,9 @@ class LLMHVACPipeline:
                 "  Linux/Mac: export GEMINI_API_KEY=your-key"
             )
         
-        extractor = GeminiHVACExtractor(api_key=self.api_key)
+        # Get model from env or use default
+        model_name = os.environ.get("GEMINI_MODEL")
+        extractor = GeminiHVACExtractor(api_key=self.api_key, model_name=model_name)
         
         if self.full_extraction:
             print("Mode: FULL EXTRACTION (all pages)")
@@ -137,7 +139,8 @@ class LLMHVACPipeline:
         print(f"Output:       {self.output_path}")
         print(f"Job Number:   {self.job_number}")
         print(f"Project:      {self.project_name}")
-        print(f"LLM Model:    Gemini 2.0 Flash")
+        model_name = os.environ.get("GEMINI_MODEL", "gemini-2.0-flash-exp")
+        print(f"LLM Model:    {model_name}")
         print(f"Extraction:   {'Full (all pages)' if self.full_extraction else 'Schedules only'}")
         
         # Step 1: Extract
