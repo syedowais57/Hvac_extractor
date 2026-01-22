@@ -5,15 +5,10 @@ Extracts HVAC equipment data from PDF drawings
 import os
 import json
 import fitz  # PyMuPDF
-# Try new package first, fallback to deprecated one
-try:
-    import google.genai as genai
-    USE_NEW_API = True
-except ImportError:
-    import google.generativeai as genai
-    USE_NEW_API = False
-    import warnings
-    warnings.filterwarnings('ignore', category=FutureWarning)
+# Use the google-generativeai package (the only one in requirements.txt)
+import google.generativeai as genai
+import warnings
+warnings.filterwarnings('ignore', category=FutureWarning)
 from dataclasses import dataclass, asdict
 from typing import List, Dict, Optional, Any
 from pathlib import Path
@@ -200,36 +195,21 @@ Return a JSON object:
             "gemini-2.0-flash-exp"  # Default model
         )
         
-        if USE_NEW_API:
-            # New API
-            genai.configure(api_key=self.api_key)
-            # Try specified model, fallback to alternatives
+        # Configure API
+        genai.configure(api_key=self.api_key)
+        
+        # Try specified model, fallback to alternatives
+        try:
+            self.model = genai.GenerativeModel(self.model_name)
+            print(f"Using model: {self.model_name}")
+        except Exception as e:
+            print(f"Warning: Could not load model '{self.model_name}': {e}")
+            # Fallback to older model
             try:
-                self.model = genai.GenerativeModel(self.model_name)
-                print(f"Using model: {self.model_name}")
-            except Exception as e:
-                print(f"Warning: Could not load model '{self.model_name}': {e}")
-                # Fallback to older model
-                try:
-                    self.model = genai.GenerativeModel("gemini-1.5-flash")
-                    print("Falling back to: gemini-1.5-flash")
-                except:
-                    raise ValueError(f"Could not initialize any Gemini model. Tried: {self.model_name}, gemini-1.5-flash")
-        else:
-            # Deprecated API (backward compatibility)
-            genai.configure(api_key=self.api_key)
-            # Use model that works with deprecated API
-            try:
-                self.model = genai.GenerativeModel(self.model_name)
-                print(f"Using model: {self.model_name}")
-            except Exception as e:
-                print(f"Warning: Could not load model '{self.model_name}': {e}")
-                # Fallback to older model
-                try:
-                    self.model = genai.GenerativeModel("gemini-1.5-flash")
-                    print("Falling back to: gemini-1.5-flash")
-                except:
-                    raise ValueError(f"Could not initialize any Gemini model. Tried: {self.model_name}, gemini-1.5-flash")
+                self.model = genai.GenerativeModel("gemini-1.5-flash")
+                print("Falling back to: gemini-1.5-flash")
+            except:
+                raise ValueError(f"Could not initialize any Gemini model. Tried: {self.model_name}, gemini-1.5-flash")
         
     def _pdf_page_to_image(self, pdf_path: str, page_num: int) -> bytes:
         """Convert PDF page to PNG image bytes"""
