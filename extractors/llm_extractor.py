@@ -192,7 +192,7 @@ Return a JSON object:
         self.model = genai.GenerativeModel(self.model_name)
         print(f"Using Gemini model: {self.model_name}")
         
-    def _pdf_page_to_image(self, pdf_path: str, page_num: int, dpi: int = 300) -> bytes:
+    def _pdf_page_to_image(self, pdf_path: str, page_num: int, dpi: int = 200) -> bytes:
         """Convert PDF page to PNG image bytes"""
         doc = fitz.open(pdf_path)
         page = doc[page_num]
