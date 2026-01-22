@@ -192,12 +192,12 @@ Return a JSON object:
         self.model = genai.GenerativeModel(self.model_name)
         print(f"Using Gemini model: {self.model_name}")
         
-    def _pdf_page_to_image(self, pdf_path: str, page_num: int, dpi: int = 120) -> bytes:
+    def _pdf_page_to_image(self, pdf_path: str, page_num: int, dpi: int = 300) -> bytes:
         """Convert PDF page to PNG image bytes"""
         doc = fitz.open(pdf_path)
         page = doc[page_num]
         
-        # Higher DPI for better text recognition (120 for memory optimization)
+        # 300 DPI for high quality text recognition
         zoom = dpi / 72
         matrix = fitz.Matrix(zoom, zoom)
         pix = page.get_pixmap(matrix=matrix)
