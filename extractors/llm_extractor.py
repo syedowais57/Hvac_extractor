@@ -185,15 +185,19 @@ Return a JSON object:
         if not self.api_key:
             raise ValueError("GEMINI_API_KEY not provided. Set it as environment variable or pass to constructor.")
         
+        # Get model from environment variable or use default
+        self.model_name = os.environ.get("GEMINI_MODEL", "gemini-3-pro-preview")
+        
         genai.configure(api_key=self.api_key)
-        self.model = genai.GenerativeModel("gemini-2.0-flash")
+        self.model = genai.GenerativeModel(self.model_name)
+        print(f"Using Gemini model: {self.model_name}")
         
     def _pdf_page_to_image(self, pdf_path: str, page_num: int, dpi: int = 120) -> bytes:
         """Convert PDF page to PNG image bytes"""
         doc = fitz.open(pdf_path)
         page = doc[page_num]
         
-        # Higher DPI for better text recognition
+        # Higher DPI for better text recognition (120 for memory optimization)
         zoom = dpi / 72
         matrix = fitz.Matrix(zoom, zoom)
         pix = page.get_pixmap(matrix=matrix)
