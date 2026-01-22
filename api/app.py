@@ -42,14 +42,31 @@ jobs: Dict[str, Dict] = {}
 
 def load_jobs():
     global jobs
-    if JOBS_FILE.exists():
-        try:
-            with open(JOBS_FILE, "r") as f:
-                jobs = json.load(f)
-                print(f"Loaded {len(jobs)} jobs from storage.")
-        except Exception as e:
-            print(f"Error loading jobs: {e}")
+    try:
+        if JOBS_FILE.exists():
+            try:
+                with open(JOBS_FILE, "r") as f:
+                    jobs = json.load(f)
+                    print(f"Loaded {len(jobs)} jobs from storage.")
+            except json.JSONDecodeError as e:
+                print(f"JSON decode error loading jobs: {e}")
+                # Try to backup corrupted file
+                try:
+                    backup_path = JOBS_FILE.with_suffix('.json.bak')
+                    JOBS_FILE.rename(backup_path)
+                    print(f"Backed up corrupted jobs.json to {backup_path}")
+                except:
+                    pass
+                jobs = {}
+            except Exception as e:
+                print(f"Error loading jobs: {e}")
+                jobs = {}
+        else:
+            # File doesn't exist yet, that's okay
             jobs = {}
+    except Exception as e:
+        print(f"Unexpected error in load_jobs: {e}")
+        jobs = {}
 
 def save_jobs():
     try:
@@ -176,13 +193,30 @@ async def extract_hvac(
 @app.get("/status/{job_id}")
 async def get_status(job_id: str):
     """Check status of a job"""
-    # Reload jobs from file to ensure we have latest state
-    load_jobs()
-    
-    if job_id not in jobs:
-        raise HTTPException(status_code=404, detail=f"Job {job_id} not found")
-    
-    return jobs[job_id]
+    try:
+        # Reload jobs from file to ensure we have latest state
+        try:
+            load_jobs()
+        except Exception as e:
+            print(f"Error loading jobs in status endpoint: {e}")
+            # Continue with in-memory jobs if file load fails
+        
+        if job_id not in jobs:
+            # Return a proper response instead of raising exception
+            return JSONResponse(
+                status_code=404,
+                content={"error": f"Job {job_id} not found", "status": "not_found"}
+            )
+        
+        return jobs[job_id]
+    except Exception as e:
+        print(f"Error in status endpoint for job {job_id}: {e}")
+        import traceback
+        traceback.print_exc()
+        return JSONResponse(
+            status_code=500,
+            content={"error": "Internal server error", "details": str(e)}
+        )
 
 @app.get("/download/{filename}")
 async def download_file(filename: str):
