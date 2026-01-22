@@ -70,10 +70,14 @@ def load_jobs():
 
 def save_jobs():
     try:
+        # Ensure directory exists
+        JOBS_FILE.parent.mkdir(parents=True, exist_ok=True)
         with open(JOBS_FILE, "w") as f:
             json.dump(jobs, f, indent=2)
     except Exception as e:
         print(f"Error saving jobs: {e}")
+        import traceback
+        traceback.print_exc()
 
 # Initial load
 load_jobs()
