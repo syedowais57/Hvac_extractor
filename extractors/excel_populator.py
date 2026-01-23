@@ -140,7 +140,7 @@ class HVACExcelPopulator:
         if vav_data.get("has_reheat"):
             self._safe_set_cell(ws, 20, 11, vav_data.get("reheat_kw", "")) # Guessing Row 20 in Col K
         
-        print(f"  ✓ Populated VAV sheet: {sheet_name}")
+        print(f"  [OK] Populated VAV sheet: {sheet_name}")
         return True
     
     def populate_ef(self, ef_data: Dict) -> bool:
@@ -174,7 +174,7 @@ class HVACExcelPopulator:
             if value:
                 self._safe_set_cell(ws, row, 14, value)
         
-        print(f"  ✓ Populated EF sheet: {sheet_name}")
+        print(f"  [OK] Populated EF sheet: {sheet_name}")
         return True
     
     def populate_heater(self, heater_data: Dict, sheet_name: str, block: int = 1) -> bool:
@@ -202,7 +202,7 @@ class HVACExcelPopulator:
             elif "KW" in label:
                 self._safe_set_cell(ws, row, col_idx, heater_data.get("kw", ""))
         
-        print(f"  ✓ Populated Heater sheet: {sheet_name} (block {block})")
+        print(f"  [OK] Populated Heater sheet: {sheet_name} (block {block})")
         return True
     
     def populate_all(self, extracted_data: Dict[str, List]) -> Dict[str, int]:
@@ -249,7 +249,7 @@ class HVACExcelPopulator:
         """Save the populated workbook"""
         output = output_path or self.template_path.replace(".xlsx", "_populated.xlsx")
         self.wb.save(output)
-        print(f"\n✓ Saved to: {output}")
+        print(f"\n[OK] Saved to: {output}")
         return output
 
 
