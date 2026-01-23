@@ -497,7 +497,7 @@ class HVACExcelGenerator:
     def save(self, output_path: str):
         """Save the workbook"""
         self.wb.save(output_path)
-        print(f"✓ Saved to: {output_path}")
+        print(f"[OK] Saved to: {output_path}")
         return output_path
 
 

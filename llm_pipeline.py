@@ -152,7 +152,7 @@ class LLMHVACPipeline:
         
         # Done
         print("\n" + "=" * 60)
-        print("✓ PIPELINE COMPLETE!")
+        print("[OK] PIPELINE COMPLETE!")
         print("=" * 60)
         print(f"Output file: {output}")
         
